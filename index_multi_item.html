@@ -1,0 +1,132 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wire Bill Calculator</title>
+<style>
+body{font-family:Arial;margin:20px;background:#f5f5f5}
+.card{max-width:900px;margin:auto;background:white;padding:20px;border-radius:10px}
+table{width:100%;border-collapse:collapse}
+th,td{border:1px solid #ddd;padding:8px;text-align:center}
+select,input{width:100%;padding:8px;box-sizing:border-box}
+button{padding:10px 15px;cursor:pointer;margin:5px}
+.totals{margin-top:20px;font-size:18px}
+</style>
+</head>
+<body>
+<div class="card">
+<h2>Wire Bill Calculator</h2>
+
+<label><b>Company</b></label>
+<select id="company" onchange="refreshAllRows()"></select>
+
+<table id="itemsTable">
+<thead>
+<tr>
+<th>Size</th>
+<th>Qty</th>
+<th>Rate</th>
+<th>Amount</th>
+<th>Remove</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+
+<button onclick="addRow()">+ Add Item</button>
+
+<br><br>
+<label><b>Less %</b></label>
+<input type="number" id="less" value="0" oninput="calculate()">
+
+<div class="totals" id="result"></div>
+</div>
+
+<script>
+const products={
+"HAVELLS":{"0.75mm":2275,"1mm":3090,"1.5mm":4530,"2.5mm":7190,"4mm":10540,"6mm":15685,"10mm":32690,"16mm":51520},
+"POLYCAB":{"0.75mm":2220,"1mm":2980,"1.5mm":4355,"2.5mm":6880,"4mm":10070,"6mm":15050,"10mm":36500,"16mm":57400},
+"RR":{"0.75mm":2150,"1mm":2799,"1.5mm":4049,"2.5mm":6476,"4mm":10154,"6mm":15165},
+"KEI":{"0.75mm":2380,"1mm":3060,"1.5mm":4570,"2.5mm":7300,"4mm":10840,"6mm":16410},
+"REO":{"0.75mm":2060,"1mm":2665,"1.5mm":3855,"2.5mm":6205,"4mm":9475,"6mm":14225,"10mm":22050,"16mm":34990},
+"POLYCAB GREEN":{"0.75mm":2370,"1mm":3195,"1.5mm":4660,"2.5mm":7315,"4mm":10670,"6mm":16015},
+"ETIRA":{"0.75mm":2060,"1mm":2670,"1.5mm":3935,"2.5mm":6280,"4mm":9390,"6mm":14435},
+"HAVELLS (180M)":{"0.75mm":5010,"1mm":6480,"1.5mm":9490,"2.5mm":15275,"4mm":23590,"6mm":35325},
+"RR (200M)":{"0.75mm":5579,"1mm":7287,"1.5mm":10539,"2.5mm":17156,"4mm":26378,"6mm":39225},
+"POLYCAB (300M)":{"0.75mm":9230,"1mm":11935,"1.5mm":17490,"2.5mm":29030,"4mm":39960,"6mm":44855,"10mm":77185,"16mm":121435}
+};
+
+function addRow(){
+ const tbody=document.querySelector("#itemsTable tbody");
+ const tr=document.createElement("tr");
+
+ tr.innerHTML=`
+ <td><select class="size" onchange="calculate()"></select></td>
+ <td><input type="number" class="qty" value="1" min="1" oninput="calculate()"></td>
+ <td class="rate"></td>
+ <td class="amount"></td>
+ <td><button onclick="this.parentElement.parentElement.remove();calculate()">X</button></td>
+ `;
+
+ tbody.appendChild(tr);
+ populateSizes(tr.querySelector(".size"));
+ calculate();
+}
+
+function populateSizes(sel){
+ const company=document.getElementById("company").value;
+ sel.innerHTML="";
+ Object.keys(products[company]).forEach(size=>{
+   let o=document.createElement("option");
+   o.value=size;
+   o.text=size;
+   sel.appendChild(o);
+ });
+}
+
+function refreshAllRows(){
+ document.querySelectorAll(".size").forEach(populateSizes);
+ calculate();
+}
+
+function calculate(){
+ const company=document.getElementById("company").value;
+ let subtotal=0;
+
+ document.querySelectorAll("#itemsTable tbody tr").forEach(row=>{
+   const size=row.querySelector(".size").value;
+   const qty=parseFloat(row.querySelector(".qty").value)||0;
+   const rate=products[company][size]||0;
+   const amount=rate*qty;
+
+   row.querySelector(".rate").innerText="₹"+rate.toLocaleString();
+   row.querySelector(".amount").innerText="₹"+amount.toLocaleString();
+
+   subtotal+=amount;
+ });
+
+ const less=parseFloat(document.getElementById("less").value)||0;
+ const discount=subtotal*less/100;
+ const finalAmt=subtotal-discount;
+
+ document.getElementById("result").innerHTML=`
+ <b>Subtotal:</b> ₹${subtotal.toLocaleString()}<br>
+ <b>Discount:</b> ₹${discount.toLocaleString()}<br>
+ <b>Final Amount:</b> ₹${finalAmt.toLocaleString()}
+ `;
+}
+
+window.onload=()=>{
+ const company=document.getElementById("company");
+ Object.keys(products).forEach(c=>{
+   let o=document.createElement("option");
+   o.value=c;o.text=c;
+   company.appendChild(o);
+ });
+ addRow();
+};
+</script>
+</body>
+</html>
