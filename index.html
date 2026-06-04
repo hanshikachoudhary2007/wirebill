@@ -1,18 +1,17 @@
-
 <!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Wire Bill Calculator</title>
+<title>Wire Bill Calculator V2</title>
 <style>
-body{font-family:Arial;margin:20px;background:#f5f5f5}
-.card{max-width:900px;margin:auto;background:white;padding:20px;border-radius:10px}
+body{font-family:Arial;background:#f5f5f5;padding:15px}
+.card{max-width:950px;margin:auto;background:white;padding:20px;border-radius:12px}
 table{width:100%;border-collapse:collapse}
 th,td{border:1px solid #ddd;padding:8px;text-align:center}
 select,input{width:100%;padding:8px;box-sizing:border-box}
-button{padding:10px 15px;cursor:pointer;margin:5px}
-.totals{margin-top:20px;font-size:18px}
+button{padding:12px 16px;font-size:16px;margin:5px;cursor:pointer}
+.result{margin-top:20px;font-size:18px;line-height:1.8}
 </style>
 </head>
 <body>
@@ -20,9 +19,9 @@ button{padding:10px 15px;cursor:pointer;margin:5px}
 <h2>Wire Bill Calculator</h2>
 
 <label><b>Company</b></label>
-<select id="company" onchange="refreshAllRows()"></select>
+<select id="company" onchange="refreshRows()"></select>
 
-<table id="itemsTable">
+<table id="tbl">
 <thead>
 <tr>
 <th>Size</th>
@@ -35,13 +34,16 @@ button{padding:10px 15px;cursor:pointer;margin:5px}
 <tbody></tbody>
 </table>
 
+<div>
 <button onclick="addRow()">+ Add Item</button>
+<button onclick="calculate()">Calculate</button>
+<button onclick="clearAll()">Clear</button>
+</div>
 
-<br><br>
 <label><b>Less %</b></label>
-<input type="number" id="less" value="0" oninput="calculate()">
+<input type="number" id="less" value="0">
 
-<div class="totals" id="result"></div>
+<div class="result" id="result"></div>
 </div>
 
 <script>
@@ -58,72 +60,68 @@ const products={
 "POLYCAB (300M)":{"0.75mm":9230,"1mm":11935,"1.5mm":17490,"2.5mm":29030,"4mm":39960,"6mm":44855,"10mm":77185,"16mm":121435}
 };
 
-function addRow(){
- const tbody=document.querySelector("#itemsTable tbody");
- const tr=document.createElement("tr");
-
- tr.innerHTML=`
- <td><select class="size" onchange="calculate()"></select></td>
- <td><input type="number" class="qty" value="1" min="1" oninput="calculate()"></td>
- <td class="rate"></td>
- <td class="amount"></td>
- <td><button onclick="this.parentElement.parentElement.remove();calculate()">X</button></td>
- `;
-
- tbody.appendChild(tr);
- populateSizes(tr.querySelector(".size"));
- calculate();
-}
-
-function populateSizes(sel){
- const company=document.getElementById("company").value;
- sel.innerHTML="";
- Object.keys(products[company]).forEach(size=>{
-   let o=document.createElement("option");
-   o.value=size;
-   o.text=size;
-   sel.appendChild(o);
+function populate(sel){
+ const c=document.getElementById('company').value;
+ sel.innerHTML='';
+ Object.keys(products[c]).forEach(s=>{
+  let o=document.createElement('option');
+  o.value=s;o.text=s;
+  sel.appendChild(o);
  });
 }
 
-function refreshAllRows(){
- document.querySelectorAll(".size").forEach(populateSizes);
- calculate();
+function addRow(){
+ let tr=document.createElement('tr');
+ tr.innerHTML=`<td><select class="size"></select></td>
+ <td><input type="number" class="qty" value="1" min="1"></td>
+ <td class="rate"></td>
+ <td class="amt"></td>
+ <td><button onclick="this.closest('tr').remove()">X</button></td>`;
+ document.querySelector('#tbl tbody').appendChild(tr);
+ populate(tr.querySelector('.size'));
+}
+
+function refreshRows(){
+ document.querySelectorAll('.size').forEach(populate);
 }
 
 function calculate(){
- const company=document.getElementById("company").value;
- let subtotal=0;
-
- document.querySelectorAll("#itemsTable tbody tr").forEach(row=>{
-   const size=row.querySelector(".size").value;
-   const qty=parseFloat(row.querySelector(".qty").value)||0;
-   const rate=products[company][size]||0;
-   const amount=rate*qty;
-
-   row.querySelector(".rate").innerText="₹"+rate.toLocaleString();
-   row.querySelector(".amount").innerText="₹"+amount.toLocaleString();
-
-   subtotal+=amount;
+ const c=document.getElementById('company').value;
+ let subtotal=0, count=0;
+ document.querySelectorAll('#tbl tbody tr').forEach(r=>{
+   let s=r.querySelector('.size').value;
+   let q=Number(r.querySelector('.qty').value)||0;
+   let rate=products[c][s]||0;
+   let amt=rate*q;
+   r.querySelector('.rate').innerText='₹'+rate.toLocaleString();
+   r.querySelector('.amt').innerText='₹'+amt.toLocaleString();
+   subtotal+=amt;
+   count+=q;
  });
+ let less=Number(document.getElementById('less').value)||0;
+ let disc=subtotal*less/100;
+ let finalAmt=subtotal-disc;
 
- const less=parseFloat(document.getElementById("less").value)||0;
- const discount=subtotal*less/100;
- const finalAmt=subtotal-discount;
-
- document.getElementById("result").innerHTML=`
+ document.getElementById('result').innerHTML=
+ `<b>Total Quantity:</b> ${count}<br>
  <b>Subtotal:</b> ₹${subtotal.toLocaleString()}<br>
- <b>Discount:</b> ₹${discount.toLocaleString()}<br>
- <b>Final Amount:</b> ₹${finalAmt.toLocaleString()}
- `;
+ <b>Discount:</b> ₹${disc.toLocaleString()}<br>
+ <b>Final Amount:</b> ₹${finalAmt.toLocaleString()}`;
+}
+
+function clearAll(){
+ document.querySelector('#tbl tbody').innerHTML='';
+ document.getElementById('less').value=0;
+ addRow();
+ document.getElementById('result').innerHTML='';
 }
 
 window.onload=()=>{
- const company=document.getElementById("company");
- Object.keys(products).forEach(c=>{
-   let o=document.createElement("option");
-   o.value=c;o.text=c;
-   company.appendChild(o);
+ let c=document.getElementById('company');
+ Object.keys(products).forEach(x=>{
+  let o=document.createElement('option');
+  o.value=x;o.text=x;
+  c.appendChild(o);
  });
  addRow();
 };
